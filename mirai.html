@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>八千代町 未来人口シミュレーター</title>
+    <style>
+        :root { --main-color: #2e7d32; --accent-color: #d32f2f; }
+        body { 
+            font-family: "Helvetica Neue", Arial, sans-serif;
+            /* 土師ダム・八千代湖をイメージした背景 */
+            background-image: url('https://images.unsplash.com/photo-1522383225653-ed111181a951?auto=format&fit=crop&q=80&w=1200');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container { 
+            background: rgba(255, 255, 255, 0.9); 
+            width: 90%; 
+            max-width: 480px; 
+            padding: 25px; 
+            border-radius: 20px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3); 
+            backdrop-filter: blur(8px);
+        }
+        h1 { color: var(--main-color); text-align: center; font-size: 1.3rem; border-bottom: 2px solid var(--main-color); padding-bottom: 10px; }
+        
+        .input-section { background: #f1f8e9; padding: 15px; border-radius: 12px; text-align: center; margin-bottom: 20px; }
+        input { padding: 10px; font-size: 1.2rem; width: 70px; border: 2px solid var(--main-color); border-radius: 8px; text-align: center; }
+
+        .toggle-box { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
+        .toggle-btn { padding: 10px 15px; border: 2px solid var(--main-color); border-radius: 25px; background: white; cursor: pointer; font-weight: bold; transition: 0.3s; flex: 1; font-size: 0.85rem; }
+        .toggle-btn.active { background: var(--main-color); color: white; }
+
+        .result-card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 15px; border-left: 6px solid var(--main-color); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .year-title { font-weight: bold; font-size: 1.1rem; color: #555; display: flex; justify-content: space-between; margin-bottom: 5px; }
+        .pop-val { font-size: 1.4rem; font-weight: bold; color: var(--main-color); }
+        .pop-diff { font-size: 0.85rem; color: var(--accent-color); font-weight: bold; }
+        .message { font-size: 0.85rem; color: #666; margin-top: 10px; font-style: italic; background: #fafafa; padding: 8px; border-radius: 5px; }
+
+        .footer { font-size: 0.75rem; color: #777; line-height: 1.4; margin-top: 15px; border-top: 1px solid #ddd; padding-top: 10px; }
+        .home-link { display: block; text-align: center; margin-top: 15px; text-decoration: none; color: #555; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>八千代町 未来シミュレーター</h1>
+
+    <div class="input-section">
+        あなたの今の年齢は？ <input type="number" id="ageInput" value="40" oninput="runSim()"> 歳
+    </div>
+
+    <div class="toggle-box">
+        <button id="mode-w" class="toggle-btn active" onclick="setMode('w')">何もしない未来</button>
+        <button id="mode-b" class="toggle-btn" onclick="setMode('b')">目標を達成した未来</button>
+    </div>
+
+    <div id="display-area"></div>
+
+    <div class="footer">
+        ※安芸高田市総合計画（2020年:3,688人）に基づく予測値です。目標達成時は市全体で1.8万人の維持を想定した試算です。
+    </div>
+    
+    <a href="index.html" class="home-link">← クイズに戻る</a>
+</div>
+
+<script>
+    let currentMode = 'w';
+
+    const dataPoints = {
+        w: [ // ワーストケース（現状のまま）
+            {y: 2035, p: 2486, r: "▼33%", m: "土師ダムの桜を眺めながら、地域の歴史を語り継いでいる頃。"},
+            {y: 2045, p: 2368, r: "▼36%", m: "神楽の笛の音を特等席で聞きながら、穏やかに暮らしています。"},
+            {y: 2100, p: 880,  r: "▼76%", m: "あなたは伝説の100歳超え。次世代に八千代の魂を伝えます。"}
+        ],
+        b: [ // ベストケース（目標達成時）
+            {y: 2035, p: 3100, r: "▼15%", m: "若者の移住が増え、産直市場は毎日大にぎわいです！"},
+            {y: 2045, p: 3000, r: "▼18%", m: "小学校からは子供たちの声。活気が戻ってきました。"},
+            {y: 2100, p: 2800, r: "▼24%", m: "100年後も桜は満開。持続可能な美しい町が続いています。"}
+        ]
+    };
+
+    function setMode(mode) {
+        currentMode = mode;
+        document.getElementById('mode-w').classList.toggle('active', mode === 'w');
+        document.getElementById('mode-b').classList.toggle('active', mode === 'b');
+        runSim();
+    }
+
+    function runSim() {
+        const age = parseInt(document.getElementById('ageInput').value) || 0;
+        const display = document.getElementById('display-area');
+        const curYear = new Date().getFullYear();
+        let html = "";
+
+        dataPoints[currentMode].forEach(item => {
+            const futureAge = age + (item.y - curYear);
+            html += `
+                <div class="result-card">
+                    <div class="year-title">
+                        <span>${item.y}年（${item.y - curYear}年後）</span>
+                        <span>あなたは ${futureAge} 歳</span>
+                    </div>
+                    <div>推計人口: <span class="pop-val">${item.p.toLocaleString()}人</span></div>
+                    <div class="pop-diff">2020年比 ${item.r}</div>
+                    <div class="message">💡 ${item.m}</div>
+                </div>
+            `;
+        });
+        display.innerHTML = html;
+    }
+
+    runSim();
+</script>
+
+</body>
+</html>
